@@ -1,2 +1,2 @@
 # PROPEL-Repository 
-This is where our group is going to store our code. 
+Group Members: Madeline Wang, Andrew Shelton, Eric Cito, Chloe Zhang, William Dougherty 
