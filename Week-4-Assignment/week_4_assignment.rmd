@@ -1,0 +1,82 @@
+```{r}
+
+# size measurement attribute: bill length
+
+# bootstrapping - assuming that that sample at hand is representative of the population
+# instead of utilizing new samples to test, perform "resampling" 
+# ("resampling with replacement" -> use the samples for the test and then put the sample back into the population)
+# reuse the samples to simulate utilizing new samples 
+# can then use this to generate a mean, a standard error, and then finally, a confidence interval
+# why can we do this? 
+# one of the ways to generate a measurement of uncertainty (i.e., how certain are we that our estimate is true to the population)
+
+library(tidyverse)
+library(palmerpenguins)
+
+penguins_df <- penguins
+
+
+# barplot
+penguins_barplot <- penguins %>%
+  filter(!is.na(bill_length_mm), sex %in% c("male", "female"), species %in% c("Chinstrap", "Adelie")) %>%
+  group_by(sex, species) %>%
+  summarize(median_bill_length = median(bill_length_mm))
+
+ggplot(penguins_barplot, aes(x = species, y = median_bill_length, fill = sex)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Median Bill Length by Sex for Chinstrap and Adelie Penguins",
+    x = "Sex",
+    y = "Median Bill Length (mm)"
+  ) +
+  theme_minimal()
+
+# 95% CI for median difference between male and female penguins
+
+# chatgpt prompt: 
+# "dataset: palmer penguins in R
+# purpose of code: bootstrap using a loop. look at the median bill lengths between males and females to generate a 95% ci."
+
+set.seed(123)   # setting a seed ensures that random operations produce the same results every time (good practice)
+                # the '123' is arbitrary and can be any number, representing where R will start in the sequence of random numbers
+                # this is important for ensuring that the results are consistent across different runs of the code.
+
+penguins_ci <- penguins %>%
+  filter(!is.na(bill_length_mm), species %in% c("Chinstrap", "Adelie"))
+
+n_boot <- 10000 # number of bootstrap iterations
+
+boot_diff <- numeric(n_boot)  # empty vector to store bootstrap differences when calculated by for loop
+                              # Create a numeric vector of length 5
+                              # my_numeric_vector <- numeric(5)
+                              # print(my_numeric_vector)
+                              # Output: [1] 0 0 0 0 0
+for (i in 1:n_boot) {
+  
+  sample_data <- penguins_ci %>%
+    group_by(species) %>%
+    sample_frac(replace = TRUE) %>% # takes a random fraction of rows from the penguins_ci data frame
+                                    # (in this case, no number is specified prior to replace = TRUE, so 1 is used)
+                                    # e.g., sample_frac(1, replace = TRUE) 
+                                    # the number represents the fraction of the dataset that will be used
+                                    # e.g., 1 = 100% of the dataset
+                                    # importantly, not every single row is used in the bootstrap as rows can be repeated in the bootstrap
+    summarise(median_bill = median(bill_length_mm)) %>% 
+    pivot_wider(names_from = species, values_from = median_bill) # essentially a transpose
+  
+  boot_diff[i] <- sample_data$Adelie - sample_data$Chinstrap # stores the difference between Adlie and Chinstrap median bill length in the empty boot_diff vector
+}
+
+ci <- quantile(boot_diff, probs = c(0.025, 0.975)) # base R function
+
+ci
+
+mean_diff <- mean(boot_diff)
+
+mean_diff
+
+# By bootstrapping resampling, the median bill length of Chinstrap penguins are generally larger than Adlie penguins, 
+# with 95% of Chinstrap penguins median bill lengths being 8.7-11.9 mm larger than Adlie penguins.
+# This might lead us to infer that Chinstrap penguins are larger than Adlie penguins.
+
+```
